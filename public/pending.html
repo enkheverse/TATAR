@@ -12,7 +12,15 @@
     <div class="pending-icon">⏳</div>
     <h1>Application Received!</h1>
     <p>Your tatar account is pending admin approval. You'll be able to start taking orders once approved.</p>
-    <p style="margin-top:1rem;font-size:13px;">In the meantime, message <b style="color:var(--accent);">@Tatarselch_bot</b> on Telegram — this is required so we can notify you when you're approved and send you the group link.</p>
+    <p style="margin-top:1rem;font-size:13px;">Enter your Telegram username below so we can notify you when approved and send you the group link.</p>
+    <div style="margin-top:1.2rem;text-align:left;">
+      <label style="font-size:13px;color:var(--muted);">Telegram Username</label>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input id="tg-username" type="text" placeholder="@username" style="flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+        <button class="btn" style="padding:10px 16px;" onclick="saveTelegram()">Save</button>
+      </div>
+      <div id="tg-msg" style="font-size:12px;margin-top:6px;"></div>
+    </div>
     <button class="btn btn-ghost" style="width:100%;margin-top:1.5rem;justify-content:center;" onclick="window.location.href='/'">← Back to Home</button>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px;justify-content:center;" onclick="logout()">Logout</button>
   </div>

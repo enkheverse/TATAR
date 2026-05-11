@@ -254,6 +254,26 @@ async function confirmPrice(accepted) {
   } catch(e) { toast('Failed', 'error'); }
 }
 
+// ── TELEGRAM USERNAME ────────────────────────────────────────
+async function saveTelegram() {
+  const input = document.getElementById('tg-username');
+  const msg = document.getElementById('tg-msg');
+  let username = input.value.trim().replace(/^@/, '');
+  if (!username) { msg.style.color = 'var(--error)'; msg.textContent = 'Enter your Telegram username'; return; }
+  const res = await fetch('/auth/telegram', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegram_username: username }),
+  });
+  if (res.ok) {
+    msg.style.color = 'var(--accent)';
+    msg.textContent = '✅ Saved! Admin will review your application.';
+  } else {
+    msg.style.color = 'var(--error)';
+    msg.textContent = 'Failed to save. Try again.';
+  }
+}
+
 // ── AUTH ─────────────────────────────────────────────────────
 async function getMe() {
   try {
