@@ -55,6 +55,12 @@ router.post('/reject/:id', requireAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
+// DELETE a tatar account
+router.delete('/tatars/:id', requireAdmin, async (req, res) => {
+  await supabase.from('users').delete().eq('id', req.params.id);
+  res.json({ success: true });
+});
+
 // GET all orders (admin overview)
 router.get('/orders', requireAdmin, async (req, res) => {
   const { data } = await supabase

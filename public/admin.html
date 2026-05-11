@@ -120,13 +120,16 @@ async function loadAllTatars() {
       return;
     }
     el.innerHTML = list.map(t => `
-      <div class="tatar-row">
+      <div class="tatar-row" id="tatar-${t.id}">
         <img src="${t.photo || ''}" onerror="this.style.display='none'" alt="">
         <div class="tatar-row-info">
           <div class="tatar-row-name">${escHtml(t.name)}</div>
           <div class="tatar-row-email">${escHtml(t.email)}</div>
         </div>
-        <span class="status-pill status-${t.status}">${t.status}</span>
+        <div class="tatar-row-actions">
+          <span class="status-pill status-${t.status}">${t.status}</span>
+          <button class="reject-btn" onclick="deleteTatar('${t.id}', '${escHtml(t.name)}')">🗑 Delete</button>
+        </div>
       </div>`).join('');
   } catch(e) {}
 }
@@ -157,6 +160,18 @@ async function rejectTatar(id) {
     toast('Rejected', 'error');
     document.getElementById(`row-${id}`)?.remove();
   } catch(e) {}
+}
+
+async function deleteTatar(id, name) {
+  if (!confirm(`Delete ${name}'s account? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(`/api/admin/tatars/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      toast(`🗑 ${name} deleted`, 'error');
+      document.getElementById(`tatar-${id}`)?.remove();
+      loadStats();
+    }
+  } catch(e) { toast('Failed', 'error'); }
 }
 
 async function cancelOrder(id) {
