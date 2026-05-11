@@ -28,11 +28,12 @@ router.get('/me', (req, res) => {
   });
 });
 
-router.patch('/telegram', async (req, res) => {
+router.patch('/phone', async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Not logged in' });
-  const { telegram_username } = req.body;
-  if (!telegram_username) return res.status(400).json({ error: 'Missing username' });
-  await supabase.from('users').update({ telegram_username }).eq('id', req.user.id);
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Missing phone' });
+  const clean = phone.replace(/\s+/g, '');
+  await supabase.from('users').update({ phone: clean }).eq('id', req.user.id);
   res.json({ success: true });
 });
 

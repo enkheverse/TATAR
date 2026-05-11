@@ -255,19 +255,19 @@ async function confirmPrice(accepted) {
 }
 
 // ── TELEGRAM USERNAME ────────────────────────────────────────
-async function saveTelegram() {
-  const input = document.getElementById('tg-username');
+async function savePhone() {
+  const input = document.getElementById('tg-phone');
   const msg = document.getElementById('tg-msg');
-  let username = input.value.trim().replace(/^@/, '');
-  if (!username) { msg.style.color = 'var(--error)'; msg.textContent = 'Enter your Telegram username'; return; }
-  const res = await fetch('/auth/telegram', {
+  const phone = input.value.trim();
+  if (!phone) { msg.style.color = 'var(--error)'; msg.textContent = 'Enter your phone number'; return; }
+  const res = await fetch('/auth/phone', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegram_username: username }),
+    body: JSON.stringify({ phone }),
   });
   if (res.ok) {
     msg.style.color = 'var(--accent)';
-    msg.textContent = '✅ Saved! Admin will review your application.';
+    msg.textContent = '✅ Saved! Now message @Tatarselch_bot on Telegram and tap Share Contact.';
   } else {
     msg.style.color = 'var(--error)';
     msg.textContent = 'Failed to save. Try again.';

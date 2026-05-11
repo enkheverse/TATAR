@@ -29,33 +29,59 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/tatars', require('./routes/tatars'));
 app.use('/api/admin', require('./routes/admin'));
 
-// ── Telegram webhook (inline button callbacks) ───────────────
+// ── Telegram webhook ─────────────────────────────────────────
 app.post('/telegram/webhook', async (req, res) => {
   res.sendStatus(200);
-  const { callback_query } = req.body;
-  if (!callback_query) return;
+  const { callback_query, message } = req.body;
 
+  // ── Handle contact sharing (phone number linking) ──
+  if (message?.contact) {
+    const { phone_number, user_id } = message.contact;
+    const telegramId = message.from.id;
+    const clean = phone_number.replace(/\s+/g, '');
+
+    const { data: matched } = await supabase
+      .from('users')
+      .update({ telegram_id: telegramId })
+      .eq('phone', clean)
+      .eq('role', 'tatar')
+      .select()
+      .single();
+
+    if (matched) {
+      await telegram.sendText(telegramId, `✅ Linked! Your Telegram is now connected to your TATAR account (${matched.name}). Wait for admin approval.`);
+    } else {
+      await telegram.sendText(telegramId, `❌ No account found with that phone number. Make sure you entered the same number on the TATAR website.`);
+    }
+    return;
+  }
+
+  // ── Handle any message → send contact request ──
+  if (message && !message.contact) {
+    await telegram.sendContactRequest(message.from.id);
+    return;
+  }
+
+  // ── Handle inline button (take order) ──
+  if (!callback_query) return;
   const { id: callbackId, data, from } = callback_query;
   if (!data?.startsWith('take_')) return;
 
   const orderId = data.replace('take_', '');
 
-  // find the tatar by telegram username
-  const username = from.username;
   const { data: tatar } = await supabase
     .from('users')
     .select('*')
     .eq('role', 'tatar')
     .eq('status', 'approved')
-    .ilike('telegram_username', username || '__none__')
+    .eq('telegram_id', from.id)
     .single();
 
   if (!tatar) {
-    await telegram.answerCallback(callbackId, '❌ Your Telegram is not linked to an approved tatar account.');
+    await telegram.answerCallback(callbackId, '❌ Your Telegram is not linked to an approved tatar account. Message the bot to link it.');
     return;
   }
 
-  // atomically claim the order (only works if still pending)
   const { data: order, error } = await supabase
     .from('orders')
     .update({ tatar_id: tatar.id, status: 'taken', taken_at: new Date().toISOString() })

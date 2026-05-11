@@ -80,6 +80,22 @@ async function answerCallback(callbackQueryId, text) {
   await call('answerCallbackQuery', { callback_query_id: callbackQueryId, text });
 }
 
+async function sendContactRequest(chatId) {
+  await call('sendMessage', {
+    chat_id: chatId,
+    text: '👋 Tap the button below to share your contact and link your Telegram to your TATAR account.',
+    reply_markup: {
+      keyboard: [[{ text: '📱 Share Contact', request_contact: true }]],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    },
+  });
+}
+
+async function sendText(chatId, text) {
+  await call('sendMessage', { chat_id: chatId, text, reply_markup: { remove_keyboard: true } });
+}
+
 async function setWebhook(url) {
   return await call('setWebhook', { url: `${url}/telegram/webhook` });
 }
@@ -91,5 +107,7 @@ module.exports = {
   updateOrderDelivered,
   notify,
   answerCallback,
+  sendContactRequest,
+  sendText,
   setWebhook,
 };
