@@ -41,10 +41,14 @@ router.post('/approve/:id', requireAdmin, async (req, res) => {
 
   if (error || !user) return res.status(404).json({ error: 'User not found' });
 
-  await telegram.notify(
-    `🏃 <b>${user.name}</b> has been approved as a tatar!\n` +
-    `Welcome to the team! Here is your group link — share it only with approved tatars.`
-  );
+  // send direct message to the tatar if their Telegram is linked
+  if (user.telegram_id) {
+    const groupLink = process.env.TELEGRAM_GROUP_LINK || '';
+    await telegram.sendText(user.telegram_id,
+      `✅ You've been approved as a TATAR!\n\n` +
+      `You can now take orders. Join the order group here:\n${groupLink}`
+    );
+  }
 
   res.json({ success: true, user });
 });
