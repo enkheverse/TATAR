@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TATAR — Admin</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="toast"></div>
+
+<nav>
+  <div class="nav-logo">🏃 TATAR <span style="font-size:11px;color:var(--accent);margin-left:6px;font-weight:600;">ADMIN</span></div>
+  <div class="nav-right">
+    <span id="nav-name" style="font-size:13px;color:var(--muted);"></span>
+    <button class="nav-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="section" style="max-width:800px;">
+  <p class="section-tag">Admin Panel</p>
+  <h2 class="section-title">Dashboard</h2>
+
+  <!-- Stats -->
+  <div class="dash-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:2rem;">
+    <div class="dash-stat"><div class="dash-stat-num" id="s-total">0</div><div class="dash-stat-label">Total Orders</div></div>
+    <div class="dash-stat"><div class="dash-stat-num" id="s-delivered">0</div><div class="dash-stat-label">Delivered</div></div>
+    <div class="dash-stat"><div class="dash-stat-num" id="s-pending">0</div><div class="dash-stat-label">Pending</div></div>
+    <div class="dash-stat"><div class="dash-stat-num" id="s-tatars">0</div><div class="dash-stat-label">Tatars</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTab('pending-tatars')">⏳ Pending Tatars</button>
+    <button class="admin-tab" onclick="switchTab('all-tatars')">🏃 All Tatars</button>
+    <button class="admin-tab" onclick="switchTab('all-orders')">📋 All Orders</button>
+  </div>
+
+  <!-- Pending tatars tab -->
+  <div id="tab-pending-tatars">
+    <div id="pending-tatars-list"></div>
+  </div>
+
+  <!-- All tatars tab -->
+  <div id="tab-all-tatars" style="display:none;">
+    <div id="all-tatars-list"></div>
+  </div>
+
+  <!-- All orders tab -->
+  <div id="tab-all-orders" style="display:none;">
+    <div class="orders-list" id="admin-orders-list"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+async function initAdmin() {
+  const user = await getMe();
+  if (!user || user.role !== 'admin') return window.location.href = '/';
+  document.getElementById('nav-name').textContent = user.name;
+  loadStats();
+  loadPendingTatars();
+  setInterval(loadStats, 10000);
+}
+
+function switchTab(tab) {
+  ['pending-tatars','all-tatars','all-orders'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.admin-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', i === ['pending-tatars','all-tatars','all-orders'].indexOf(tab));
+  });
+  if (tab === 'all-tatars') loadAllTatars();
+  if (tab === 'all-orders') loadAllOrders();
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch('/api/admin/stats');
+    const s = await res.json();
+    document.getElementById('s-total').textContent = s.totalOrders;
+    document.getElementById('s-delivered').textContent = s.delivered;
+    document.getElementById('s-pending').textContent = s.pending;
+    document.getElementById('s-tatars').textContent = s.tatars;
+  } catch(e) {}
+}
+
+async function loadPendingTatars() {
+  try {
+    const res = await fetch('/api/admin/pending');
+    const list = await res.json();
+    const el = document.getElementById('pending-tatars-list');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No pending applications</div></div>`;
+      return;
+    }
+    el.innerHTML = list.map(t => `
+      <div class="tatar-row" id="row-${t.id}">
+        <img src="${t.photo || ''}" onerror="this.style.display='none'" alt="">
+        <div class="tatar-row-info">
+          <div class="tatar-row-name">${escHtml(t.name)}</div>
+          <div class="tatar-row-email">${escHtml(t.email)}</div>
+        </div>
+        <div class="tatar-row-actions">
+          <button class="approve-btn" onclick="approveTatar('${t.id}', '${escHtml(t.name)}')">✅ Approve</button>
+          <button class="reject-btn" onclick="rejectTatar('${t.id}')">❌ Reject</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function loadAllTatars() {
+  try {
+    const res = await fetch('/api/admin/tatars');
+    const list = await res.json();
+    const el = document.getElementById('all-tatars-list');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏃</div><div class="empty-title">No tatars yet</div></div>`;
+      return;
+    }
+    el.innerHTML = list.map(t => `
+      <div class="tatar-row">
+        <img src="${t.photo || ''}" onerror="this.style.display='none'" alt="">
+        <div class="tatar-row-info">
+          <div class="tatar-row-name">${escHtml(t.name)}</div>
+          <div class="tatar-row-email">${escHtml(t.email)}</div>
+        </div>
+        <span class="status-pill status-${t.status}">${t.status}</span>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function loadAllOrders() {
+  try {
+    const res = await fetch('/api/admin/orders');
+    const orders = await res.json();
+    renderOrderList(document.getElementById('admin-orders-list'), orders, true);
+  } catch(e) {}
+}
+
+async function approveTatar(id, name) {
+  try {
+    const res = await fetch(`/api/admin/approve/${id}`, { method: 'POST' });
+    if (res.ok) {
+      toast(`✅ ${name} approved!`, 'success');
+      document.getElementById(`row-${id}`)?.remove();
+      loadStats();
+    }
+  } catch(e) { toast('Failed', 'error'); }
+}
+
+async function rejectTatar(id) {
+  if (!confirm('Reject this tatar application?')) return;
+  try {
+    await fetch(`/api/admin/reject/${id}`, { method: 'POST' });
+    toast('Rejected', 'error');
+    document.getElementById(`row-${id}`)?.remove();
+  } catch(e) {}
+}
+
+async function cancelOrder(id) {
+  if (!confirm('Cancel this order?')) return;
+  try {
+    await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' });
+    toast('Order cancelled', 'error');
+    loadAllOrders();
+  } catch(e) {}
+}
+
+initAdmin();
+</script>
+</body>
+</html>

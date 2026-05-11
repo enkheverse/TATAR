@@ -3,202 +3,228 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TATAR — Campus Food Runners</title>
+<title>TATAR — Campus Food Delivery</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <!-- NAV -->
 <nav>
-<div class="logo">🏃 TATAR</div>
-<div class="nav-links">
-<div id="admin-badge">⚡ Admin Mode</div>
-<button class="nav-btn" onclick="openJoinModal()">🏃 Be a Tatar</button>
-<button class="nav-btn primary" onclick="document.getElementById('order-section').scrollIntoView({behavior:'smooth'})">🛒 Order Now</button>
-<button class="nav-btn" id="admin-toggle-btn" onclick="openAdminPanel()">🔑 Admin</button>
-</div>
+  <div class="nav-logo">🏃 TATAR</div>
+  <div class="nav-right">
+    <div id="nav-user" class="nav-user" style="display:none;">
+      <img id="nav-photo" src="" alt="">
+      <span id="nav-name"></span>
+      <button class="nav-btn" onclick="logout()">Logout</button>
+    </div>
+    <button class="nav-btn primary" onclick="document.getElementById('order-section').scrollIntoView({behavior:'smooth'})">🛒 Order</button>
+    <button class="nav-btn" onclick="openJoinModal()" id="join-btn">🏃 Be a Tatar</button>
+  </div>
 </nav>
 
 <!-- TICKER -->
 <div class="ticker-wrap">
-<div class="ticker">
-<span>🍕 Pizza Run ✓</span><span>🧋 Boba Delivered ✓</span><span>🍔 Burger Run ✓</span>
-<span>☕ Coffee Walk ✓</span><span>🥤 Drinks Fetched ✓</span><span>🌮 Tacos Run ✓</span>
-<span>🍜 Noodles Delivered ✓</span><span>🥪 Sandwich Walk ✓</span>
-<span>🍕 Pizza Run ✓</span><span>🧋 Boba Delivered ✓</span><span>🍔 Burger Run ✓</span>
-<span>☕ Coffee Walk ✓</span><span>🥤 Drinks Fetched ✓</span><span>🌮 Tacos Run ✓</span>
-<span>🍜 Noodles Delivered ✓</span><span>🥪 Sandwich Walk ✓</span>
-</div>
+  <div class="ticker">
+    <span>🍕 Pizza Run ✓</span><span>🧋 Boba Delivered ✓</span><span>🍔 Burger Run ✓</span>
+    <span>☕ Coffee Walk ✓</span><span>🥤 Drinks Fetched ✓</span><span>🌮 Tacos Run ✓</span>
+    <span>🍜 Noodles Delivered ✓</span><span>🥪 Sandwich Walk ✓</span>
+    <span>🍕 Pizza Run ✓</span><span>🧋 Boba Delivered ✓</span><span>🍔 Burger Run ✓</span>
+    <span>☕ Coffee Walk ✓</span><span>🥤 Drinks Fetched ✓</span><span>🌮 Tacos Run ✓</span>
+    <span>🍜 Noodles Delivered ✓</span><span>🥪 Sandwich Walk ✓</span>
+  </div>
 </div>
 
 <!-- HERO -->
 <div class="hero">
-<p class="section-tag" id="active-label">🏃 0 Tatars Active</p>
-<h1>Your Food.<br><em>We Walk.</em><br>You Chill.</h1>
-<p>TATAR is the on-campus food delivery service. Tell us what you want, we buy it and bring it to you. No bikes, no cars — just tatars running errands for extra cash.</p>
-<div class="hero-btns">
-<button class="btn-big btn-orange" onclick="document.getElementById('order-section').scrollIntoView({behavior:'smooth'})">🛒 Order Now</button>
-<button class="btn-big btn-ghost" onclick="openJoinModal()">🏃 Be a Tatar</button>
-</div>
-<div class="stats-row">
-<div class="stat"><div class="stat-num" id="stat-orders">0</div><div class="stat-label">Orders Delivered</div></div>
-<div class="stat"><div class="stat-num" id="stat-tatars">0</div><div class="stat-label">Active Tatars</div></div>
-<div class="stat"><div class="stat-num">~8min</div><div class="stat-label">Avg Delivery</div></div>
-</div>
+  <div class="hero-tag">🏃 Campus Only · Walk Delivery</div>
+  <h1>Your Food.<br><em>We Run.</em><br>You Chill.</h1>
+  <p class="hero-sub">Tell us what you want and where to get it. A tatar buys it, brings it to you. Pay on delivery.</p>
+  <div class="hero-btns">
+    <button class="btn btn-primary" onclick="document.getElementById('order-section').scrollIntoView({behavior:'smooth'})">🛒 Place an Order</button>
+    <button class="btn btn-ghost" onclick="openJoinModal()">🏃 Join as Tatar</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num" id="stat-delivered">0</div><div class="stat-label">Delivered</div></div>
+    <div class="stat"><div class="stat-num" id="stat-tatars">0</div><div class="stat-label">Active Tatars</div></div>
+    <div class="stat"><div class="stat-num">~8min</div><div class="stat-label">Avg Time</div></div>
+  </div>
 </div>
 
 <hr class="divider">
 
 <!-- HOW IT WORKS -->
-<section>
-<p class="section-tag">Process</p>
-<h2 class="section-title">How TATAR Works</h2>
-<div class="steps-grid">
-<div class="step-card">
-<div class="step-icon">📝</div>
-<div class="step-num-label">01</div>
-<h3>Post Your Order</h3>
-<p>Tell us exactly what you want, where it's from, and drop your location on campus.</p>
+<div class="section">
+  <p class="section-tag">How it works</p>
+  <h2 class="section-title">Simple as 1-2-3</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-icon">📝</div>
+      <div class="step-num">Step 01</div>
+      <h3>Place Your Order</h3>
+      <p>Fill in what you want, where to get it, and your room number.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">🏃</div>
+      <div class="step-num">Step 02</div>
+      <h3>Tatar Claims It</h3>
+      <p>A tatar sees your order on Telegram and taps to take it. First come, first served.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">💰</div>
+      <div class="step-num">Step 03</div>
+      <h3>Confirm & Pay</h3>
+      <p>Tatar sends you the real price. You confirm, they deliver. Pay on arrival + 50% fee.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">🔐</div>
+      <div class="step-num">Step 04</div>
+      <h3>Verify Delivery</h3>
+      <p>Your secret code confirms the handoff. Both sides protected.</p>
+    </div>
+  </div>
 </div>
-<div class="step-card">
-<div class="step-icon">🙋</div>
-<div class="step-num-label">02</div>
-<h3>Tatar Claims It</h3>
-<p>A nearby tatar sees your order and accepts it. They'll go buy it themselves.</p>
-</div>
-<div class="step-card">
-<div class="step-icon">🏃</div>
-<div class="step-num-label">03</div>
-<h3>They Walk & Fetch</h3>
-<p>No bikes, no cars. Our tatars walk to get your food — keeping it real and on-campus.</p>
-</div>
-<div class="step-card">
-<div class="step-icon">💸</div>
-<div class="step-num-label">04</div>
-<h3>Pay + 50% Tip</h3>
-<p>You pay the food price plus a 50% runner fee. Fair pay for their time and effort.</p>
-</div>
-</div>
-</section>
 
 <hr class="divider">
 
 <!-- ORDER FORM -->
-<section id="order-section">
-<p class="section-tag">New Order</p>
-<h2 class="section-title">Place Your Request</h2>
+<div class="section" id="order-section">
+  <p class="section-tag">New Order</p>
+  <h2 class="section-title">Place Your Request</h2>
 
-<div class="form-grid">
-<div class="form-group full">
-<label>What do you want?</label>
-<input type="text" id="item" placeholder="e.g. Large pepperoni pizza, no olives">
-</div>
-<div class="form-group">
-<label>Where to buy it?</label>
-<select id="location">
-<option value="">Select a place...</option>
-<option>🏫 Building A</option>
-<option>🛒 Supermarket</option>
-<option>☕ Café</option>
-<option>🍔 Canteen</option>
-</select>
-</div>
-<div class="form-group">
-<label>Estimated Food Price (₮)</label>
-<input type="number" id="price" placeholder="e.g. 9500" min="1" oninput="updatePrice()">
-</div>
-<div class="form-group">
-<label>Deliver To (Building/Room)</label>
-<input type="text" id="deliver-to" placeholder="e.g. Building B, Room 201">
-</div>
-<div class="form-group">
-<label>Your Contact (Phone or Social)</label>
-<input type="text" id="contact" placeholder="e.g. 9911-2233 or @username">
-</div>
-<div class="form-group full">
-<label>Special Notes</label>
-<textarea id="notes" placeholder="Any special instructions?"></textarea>
-</div>
-</div>
+  <!-- Price confirmation box (shown when tatar sets price) -->
+  <div id="price-confirm-box" class="price-box" style="display:none;">
+    <div class="verify-label">Your tatar found the item — here's the real price:</div>
+    <div class="price-amount">₮<span id="confirm-price-amt">0</span></div>
+    <div class="price-fee">+ ₮<span id="confirm-fee-amt">0</span> delivery fee = <b>₮<span id="confirm-total-amt">0</span> total</b></div>
+    <div class="price-actions">
+      <button class="btn-accept" onclick="confirmPrice(true)">✅ Accept & Continue</button>
+      <button class="btn-decline" onclick="confirmPrice(false)">❌ Cancel Order</button>
+    </div>
+  </div>
 
-<div class="price-card">
-<div class="price-row"><span>Food Price</span><span>₮<span id="disp-price">0</span></span></div>
-<div class="price-row"><span>Runner Fee (50%)</span><span>₮<span id="disp-fee">0</span></span></div>
-<div class="price-row total"><span>Total You Pay</span><span>₮<span id="disp-total">0</span></span></div>
-<p style="font-size:12px;color:var(--muted);margin-top:12px;">🏃 The extra 50% goes directly to your tatar. They buy the food first, so be ready to pay on delivery!</p>
-</div>
+  <!-- Verify code box (shown when delivering) -->
+  <div id="verify-box" class="verify-box" style="display:none;">
+    <div class="verify-label">Your delivery is on the way! Show this code to your tatar when they arrive:</div>
+    <div class="verify-code" id="verify-code-display">----</div>
+    <div class="verify-label">Do <b>not</b> share this code until food is in your hands.</div>
+  </div>
 
-<button class="submit-btn" id="post-btn" onclick="postOrder()">🛒 Post Order</button>
-</section>
+  <div class="form-card" id="order-form-card">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">What do you want? <span class="required">*</span></label>
+        <input type="text" id="item" placeholder="e.g. Chicken burger with fries" maxlength="200">
+        <div class="field-error" id="err-item"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity <span class="required">*</span></label>
+        <input type="number" id="quantity" placeholder="1" min="1" max="20">
+        <div class="field-error" id="err-quantity"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pick-up spot <span class="required">*</span></label>
+        <select id="location">
+          <option value="">Select a place...</option>
+          <option>🏫 Building A Canteen</option>
+          <option>🛒 Supermarket</option>
+          <option>☕ Café</option>
+          <option>🍔 Main Canteen</option>
+          <option>🏪 Mini Mart</option>
+        </select>
+        <div class="field-error" id="err-location"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Delivery building <span class="required">*</span></label>
+        <select id="deliver-building">
+          <option value="">Select building...</option>
+          <option>Building A</option>
+          <option>Building B</option>
+          <option>Building C</option>
+          <option>Building D</option>
+          <option>Library</option>
+          <option>Sports Hall</option>
+        </select>
+        <div class="field-error" id="err-building"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Room number <span class="required">*</span></label>
+        <input type="number" id="deliver-room" placeholder="e.g. 201" min="1">
+        <div class="field-error" id="err-room"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your phone <span class="required">*</span></label>
+        <input type="text" id="contact" placeholder="XXXX-XXXX" maxlength="9">
+        <div class="field-error" id="err-contact"></div>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Notes <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+        <textarea id="notes" placeholder="Any special instructions?" maxlength="300"></textarea>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">📍 Pin your delivery spot</label>
+        <div id="order-map"></div>
+      </div>
+    </div>
+    <button class="submit-btn" id="post-btn" onclick="postOrder()">
+      🛒 Post Order — Tatars Will Be Notified
+    </button>
+  </div>
+</div>
 
 <hr class="divider">
 
 <!-- LIVE ORDERS -->
-<section>
-<div class="admin-orders-header">
-<div>
-<p class="section-tag">Live Feed</p>
-<h2 class="section-title" style="margin-bottom:0;">Active Orders</h2>
+<div class="section">
+  <div class="orders-header">
+    <div>
+      <p class="section-tag">Live Feed</p>
+      <h2 class="section-title" style="margin-bottom:0;">Active Orders</h2>
+    </div>
+    <span class="badge" id="pending-badge" style="display:none;"></span>
+  </div>
+  <div class="orders-list" id="orders-list">
+    <div class="empty-state">
+      <div class="empty-icon">🏃</div>
+      <div class="empty-title">No orders yet</div>
+      <div class="empty-sub">Be the first to place one!</div>
+    </div>
+  </div>
 </div>
-<span class="pending-count" id="pending-badge" style="display:none;"></span>
-</div>
-<div class="orders-list" id="orders-list">
-<div class="empty-state">
-<div class="empty-icon">🏃</div>
-<p style="font-weight:700;margin-bottom:6px;">No Active Orders</p>
-<p style="font-size:13px;">All quiet right now. Be the first to place an order!</p>
-</div>
-</div>
-</section>
 
 <hr class="divider">
 
 <!-- TATARS -->
-<section>
-<p class="section-tag">The Team</p>
-<h2 class="section-title">Our Tatars</h2>
-<div class="tatars-grid" id="tatars-grid"></div>
-</section>
+<div class="section">
+  <p class="section-tag">The Team</p>
+  <h2 class="section-title">Our Tatars</h2>
+  <div class="tatars-grid" id="tatars-grid"></div>
+</div>
 
-<!-- FOOTER -->
 <footer>
-<p style="font-size:16px;font-weight:700;margin-bottom:8px;">🏃 TATAR</p>
-<p>Campus-only · Walk delivery · Student-run · No vehicles</p>
-<p style="margin-top:6px;">🏃 Tatars on foot since 2024</p>
+  <p style="font-weight:700;font-size:14px;margin-bottom:4px;">🏃 TATAR</p>
+  <p>Campus-only · Walk delivery · Student-run · No vehicles</p>
 </footer>
 
-<!-- ADMIN LOGIN MODAL -->
-<div id="admin-panel">
-<div class="admin-modal">
-<h2>🔑 Admin Login</h2>
-<p>Enter the admin password to access order management.</p>
-<input class="admin-input" type="password" id="admin-pw" placeholder="Password" onkeydown="if(event.key==='Enter')checkAdmin()">
-<div id="admin-error" class="error-msg">❌ Incorrect password</div>
-<div class="modal-btns" style="margin-top:12px;">
-<button class="modal-btn cancel" onclick="closeAdminPanel()">Cancel</button>
-<button class="modal-btn confirm" onclick="checkAdmin()">Login</button>
-</div>
-</div>
-</div>
-
 <!-- JOIN MODAL -->
-<div id="join-modal">
-<div class="admin-modal">
-<h2>🏃 Join as Tatar</h2>
-<p>Earn money between classes! Accept orders, walk to buy them, deliver and collect payment + your 50% cut.</p>
-<input class="admin-input" type="text" id="join-name" placeholder="Your Name">
-<input class="admin-input" type="text" id="join-id" placeholder="Student ID / Grade">
-<input class="admin-input" type="text" id="join-phone" placeholder="Phone / Contact">
-<div class="modal-btns">
-<button class="modal-btn cancel" onclick="closeJoinModal()">Cancel</button>
-<button class="modal-btn confirm" onclick="joinAsTatar()">🏃 Sign Up</button>
-</div>
-</div>
+<div class="modal-overlay" id="join-modal">
+  <div class="modal">
+    <h2>🏃 Join as Tatar</h2>
+    <p>Sign up with Google to become a tatar. Your account will be reviewed by admin before activation. Also join our Telegram group to receive orders.</p>
+    <p style="font-size:12px;color:var(--accent);margin-bottom:1rem;">After signing up, message <b>@Tatarselch_bot</b> on Telegram to activate notifications.</p>
+    <button class="google-btn" onclick="window.location.href='/auth/google'">
+      <img src="https://www.google.com/favicon.ico" alt="Google">
+      Continue with Google
+    </button>
+    <div class="modal-btns" style="margin-top:12px;">
+      <button class="modal-btn cancel" onclick="closeJoinModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

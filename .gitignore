@@ -1,3 +1,6 @@
 node_modules/
+.env
+.claude/
 index.html.bak
+data.json
 .DS_Store
