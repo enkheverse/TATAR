@@ -3,9 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data.json');
-const ADMIN_PASSWORD = 'schooldash2024';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'schooldash2024';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -16,6 +18,21 @@ function readData() {
 
 function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+// --- Telegram ---
+
+async function notifyTelegram(text) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
+    });
+  } catch (e) {
+    console.error('Telegram notification failed:', e.message);
+  }
 }
 
 // --- Orders ---
@@ -48,6 +65,16 @@ app.post('/api/orders', (req, res) => {
   data.orders.unshift(order);
   writeData(data);
   res.status(201).json(order);
+
+  notifyTelegram(
+    `🆕 <b>NEW ORDER</b>\n` +
+    `🍽 ${order.item}\n` +
+    `📍 From: ${order.location}\n` +
+    `🏠 Deliver to: ${order.deliverTo}\n` +
+    `💰 Food: ₮${order.price.toLocaleString()} → You earn: ₮${order.fee.toLocaleString()}\n` +
+    `📞 Customer: ${order.contact}\n` +
+    (order.notes ? `📝 Notes: ${order.notes}` : '')
+  );
 });
 
 app.patch('/api/orders/:id', (req, res) => {
@@ -62,6 +89,13 @@ app.patch('/api/orders/:id', (req, res) => {
   order.status = status;
   writeData(data);
   res.json(order);
+
+  const statusEmoji = status === 'confirmed' ? '✅' : status === 'delivered' ? '📦' : '❌';
+  notifyTelegram(
+    `${statusEmoji} Order <b>${status.toUpperCase()}</b>\n` +
+    `🍽 ${order.item}\n` +
+    `📞 Customer: ${order.contact}`
+  );
 });
 
 // --- Tatars ---
