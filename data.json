@@ -1,0 +1,9 @@
+{
+  "orders": [],
+  "tatars": [
+    { "id": 1, "name": "Mendsaikhan", "phone": "8037-7308", "active": true },
+    { "id": 2, "name": "Tuguldur", "phone": "9905-9489", "active": true },
+    { "id": 3, "name": "Ganaa", "phone": "8906-2048", "active": true },
+    { "id": 4, "name": "Tsogt-Ochir", "phone": "9590-7016", "active": true }
+  ]
+}

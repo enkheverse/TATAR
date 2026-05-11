@@ -1,0 +1,12 @@
+{
+  "name": "tatar",
+  "version": "1.0.0",
+  "description": "TATAR — Campus food delivery by student runners",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
