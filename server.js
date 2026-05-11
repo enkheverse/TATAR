@@ -36,17 +36,25 @@ app.post('/telegram/webhook', async (req, res) => {
 
   // ── Handle contact sharing (phone number linking) ──
   if (message?.contact) {
-    const { phone_number, user_id } = message.contact;
     const telegramId = message.from.id;
-    const clean = phone_number.replace(/\s+/g, '');
+    // normalize: strip all non-digit chars except leading +
+    const normalize = p => p.replace(/[\s\-().]/g, '');
+    const tgPhone = normalize(message.contact.phone_number);
 
-    const { data: matched } = await supabase
-      .from('users')
-      .update({ telegram_id: telegramId })
-      .eq('phone', clean)
-      .eq('role', 'tatar')
-      .select()
-      .single();
+    // try exact match first, then with/without leading +
+    const candidates = [tgPhone, tgPhone.startsWith('+') ? tgPhone.slice(1) : '+' + tgPhone];
+
+    let matched = null;
+    for (const phone of candidates) {
+      const { data } = await supabase
+        .from('users')
+        .update({ telegram_id: telegramId })
+        .eq('phone', phone)
+        .eq('role', 'tatar')
+        .select()
+        .single();
+      if (data) { matched = data; break; }
+    }
 
     if (matched) {
       await telegram.sendText(telegramId, `✅ Linked! Your Telegram is now connected to your TATAR account (${matched.name}). Wait for admin approval.`);
