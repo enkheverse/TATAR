@@ -20,7 +20,7 @@
       <span id="nav-name"></span>
       <button class="nav-btn" onclick="logout()">Logout</button>
     </div>
-    <button class="nav-btn primary" onclick="document.getElementById('order-section').scrollIntoView({behavior:'smooth'})">🛒 Order</button>
+    <button class="nav-btn primary" onclick="openOrderModal()">🛒 Order</button>
     <button class="nav-btn" onclick="openJoinModal()" id="join-btn">🏃 Be a Tatar</button>
   </div>
 </nav>
@@ -41,10 +41,10 @@
 <div class="hero">
   <div class="hero-tag">🏃 Campus Only · Walk Delivery</div>
   <h1>Your Food.<br><em>We Run.</em><br>You Chill.</h1>
-  <p class="hero-sub">Tell us what you want and where to get it. A tatar buys it, brings it to you. Pay on delivery.</p>
+  <p class="hero-sub">Tell us what you want. A tatar buys it, brings it to you. Pay on delivery.</p>
   <div class="hero-btns">
-    <button class="btn btn-primary" onclick="document.getElementById('order-section').scrollIntoView({behavior:'smooth'})">🛒 Place an Order</button>
-    <button class="btn btn-ghost" onclick="openJoinModal()">🏃 Join as Tatar</button>
+    <button class="btn btn-primary" onclick="openOrderModal()">🛒 Place an Order</button>
+    <button class="btn btn-ghost" id="hero-join-btn" onclick="openJoinModal()">🏃 Join as Tatar</button>
   </div>
   <div class="stats-row">
     <div class="stat"><div class="stat-num" id="stat-delivered">0</div><div class="stat-label">Delivered</div></div>
@@ -64,7 +64,7 @@
       <div class="step-icon">📝</div>
       <div class="step-num">Step 01</div>
       <h3>Place Your Order</h3>
-      <p>Fill in what you want, where to get it, and your room number.</p>
+      <p>Tell us what you want, drop a pin on the map, and enter your number.</p>
     </div>
     <div class="step">
       <div class="step-icon">🏃</div>
@@ -76,7 +76,7 @@
       <div class="step-icon">💰</div>
       <div class="step-num">Step 03</div>
       <h3>Confirm & Pay</h3>
-      <p>Tatar sends you the real price. You confirm, they deliver. Pay on arrival + 50% fee.</p>
+      <p>Tatar sends you the real price. You confirm, they deliver. Pay on arrival.</p>
     </div>
     <div class="step">
       <div class="step-icon">🔐</div>
@@ -89,95 +89,33 @@
 
 <hr class="divider">
 
-<!-- ORDER FORM -->
-<div class="section" id="order-section">
-  <p class="section-tag">New Order</p>
-  <h2 class="section-title">Place Your Request</h2>
-
-  <!-- Price confirmation box (shown when tatar sets price) -->
-  <div id="price-confirm-box" class="price-box" style="display:none;">
-    <div class="verify-label">Your tatar found the item — here's the real price:</div>
-    <div class="price-amount">₮<span id="confirm-price-amt">0</span></div>
-    <div class="price-fee">+ ₮<span id="confirm-fee-amt">0</span> delivery fee = <b>₮<span id="confirm-total-amt">0</span> total</b></div>
-    <div class="price-actions">
-      <button class="btn-accept" onclick="confirmPrice(true)">✅ Accept & Continue</button>
-      <button class="btn-decline" onclick="confirmPrice(false)">❌ Cancel Order</button>
+<!-- ACTIVE ORDER STATUS (shown when user has pending order) -->
+<div id="order-section">
+  <div class="section" id="price-confirm-wrap" style="display:none;">
+    <div class="price-box">
+      <div class="verify-label">Your tatar found the item — here's the real price:</div>
+      <div class="price-amount">₮<span id="confirm-price-amt">0</span></div>
+      <div class="price-fee">+ ₮<span id="confirm-fee-amt">0</span> delivery fee = <b>₮<span id="confirm-total-amt">0</span> total</b></div>
+      <div class="price-actions">
+        <button class="btn-accept" onclick="confirmPrice(true)">✅ Accept & Continue</button>
+        <button class="btn-decline" onclick="confirmPrice(false)">❌ Cancel Order</button>
+      </div>
     </div>
   </div>
 
-  <!-- Verify code box (shown when delivering) -->
-  <div id="verify-box" class="verify-box" style="display:none;">
-    <div class="verify-label">Your delivery is on the way! Show this code to your tatar when they arrive:</div>
-    <div class="verify-code" id="verify-code-display">----</div>
-    <div class="verify-label">Do <b>not</b> share this code until food is in your hands.</div>
-  </div>
-
-  <div class="form-card" id="order-form-card">
-    <div class="form-grid">
-      <div class="form-group full">
-        <label class="form-label">What do you want? <span class="required">*</span></label>
-        <input type="text" id="item" placeholder="e.g. Chicken burger with fries" maxlength="200">
-        <div class="field-error" id="err-item"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Quantity <span class="required">*</span></label>
-        <input type="number" id="quantity" placeholder="1" min="1" max="20">
-        <div class="field-error" id="err-quantity"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Pick-up spot <span class="required">*</span></label>
-        <select id="location">
-          <option value="">Select a place...</option>
-          <option>🏫 Building A Canteen</option>
-          <option>🛒 Supermarket</option>
-          <option>☕ Café</option>
-          <option>🍔 Main Canteen</option>
-          <option>🏪 Mini Mart</option>
-        </select>
-        <div class="field-error" id="err-location"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Delivery building <span class="required">*</span></label>
-        <select id="deliver-building">
-          <option value="">Select building...</option>
-          <option>Building A</option>
-          <option>Building B</option>
-          <option>Building C</option>
-          <option>Building D</option>
-          <option>Library</option>
-          <option>Sports Hall</option>
-        </select>
-        <div class="field-error" id="err-building"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Room number <span class="required">*</span></label>
-        <input type="number" id="deliver-room" placeholder="e.g. 201" min="1">
-        <div class="field-error" id="err-room"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Your phone <span class="required">*</span></label>
-        <input type="text" id="contact" placeholder="XXXX-XXXX" maxlength="9">
-        <div class="field-error" id="err-contact"></div>
-      </div>
-      <div class="form-group full">
-        <label class="form-label">Notes <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
-        <textarea id="notes" placeholder="Any special instructions?" maxlength="300"></textarea>
-      </div>
-      <div class="form-group full">
-        <label class="form-label">📍 Pin your delivery spot</label>
-        <div id="order-map"></div>
-      </div>
+  <div class="section" id="verify-wrap" style="display:none;">
+    <div class="verify-box">
+      <div class="verify-label">Your delivery is on the way! Show this code to your tatar when they arrive:</div>
+      <div class="verify-code" id="verify-code-display">----</div>
+      <div class="verify-label">Do <b>not</b> share this code until food is in your hands.</div>
     </div>
-    <button class="submit-btn" id="post-btn" onclick="postOrder()">
-      🛒 Post Order — Tatars Will Be Notified
-    </button>
   </div>
 </div>
 
 <hr class="divider">
 
 <!-- LIVE ORDERS -->
-<div class="section">
+<div class="section" id="live-orders-section">
   <div class="orders-header">
     <div>
       <p class="section-tag">Live Feed</p>
@@ -208,12 +146,98 @@
   <p>Campus-only · Walk delivery · Student-run · No vehicles</p>
 </footer>
 
+<!-- ORDER MODAL (3 steps) -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal modal-wide">
+    <!-- Step indicators -->
+    <div class="step-indicators">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Step 1: Items -->
+    <div id="order-step-1">
+      <h2 style="margin-bottom:4px;">What do you want? 🍽</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1.2rem;">Add one or more items</p>
+      <div id="items-list"></div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;justify-content:center;" onclick="addItem()">+ Add another item</button>
+      <div style="display:flex;gap:8px;margin-top:1.2rem;">
+        <button class="modal-btn cancel" onclick="closeOrderModal()">Cancel</button>
+        <button class="modal-btn confirm" onclick="goToStep(2)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Contact + Notes -->
+    <div id="order-step-2" style="display:none;">
+      <h2 style="margin-bottom:4px;">Contact & Notes 📞</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1.2rem;">How do we reach you?</p>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Your phone number <span class="required">*</span></label>
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="padding:10px 12px;background:var(--border);border-radius:10px 0 0 10px;font-size:14px;color:var(--muted);border:1px solid var(--border);border-right:none;">+976</span>
+          <input type="tel" id="contact" placeholder="8 digit number" maxlength="8" style="flex:1;padding:10px 12px;border-radius:0 10px 10px 0;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+        </div>
+        <div class="field-error" id="err-contact"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Notes <span style="color:var(--muted);font-weight:500;">(where you are, anything special)</span></label>
+        <textarea id="notes" placeholder="e.g. I'm in Building A room 201, no onions please" maxlength="300" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;resize:vertical;min-height:80px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:1.2rem;">
+        <button class="modal-btn cancel" onclick="goToStep(1)">← Back</button>
+        <button class="modal-btn confirm" onclick="goToStep(3)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Map -->
+    <div id="order-step-3" style="display:none;">
+      <h2 style="margin-bottom:4px;">Pin your location 📍</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1rem;">Tap the map to drop your delivery spot</p>
+      <div id="order-map" style="height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--border);"></div>
+      <div id="map-hint" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center;">No pin yet — tap anywhere on the map</div>
+      <div style="display:flex;gap:8px;margin-top:1.2rem;">
+        <button class="modal-btn cancel" onclick="goToStep(2)">← Back</button>
+        <button class="modal-btn confirm" id="post-btn" onclick="postOrder()">🛒 Post Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TATAR PROFILE MODAL -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:1rem;">
+      <div id="profile-photo-wrap" style="width:72px;height:72px;border-radius:50%;overflow:hidden;margin:0 auto 8px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;">🏃</div>
+      <div id="profile-name" style="font-size:18px;font-weight:700;"></div>
+      <div id="profile-rating" style="font-size:13px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.2rem;">
+      <div style="background:var(--card-alt,var(--border));border-radius:10px;padding:12px;text-align:center;">
+        <div id="profile-deliveries" style="font-size:24px;font-weight:700;color:var(--accent);">0</div>
+        <div style="font-size:11px;color:var(--muted);">Deliveries</div>
+      </div>
+      <div style="background:var(--card-alt,var(--border));border-radius:10px;padding:12px;text-align:center;">
+        <div id="profile-avg" style="font-size:24px;font-weight:700;color:var(--accent);">—</div>
+        <div style="font-size:11px;color:var(--muted);">Avg Rating</div>
+      </div>
+    </div>
+    <div id="profile-orders-wrap">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">RECENT DELIVERIES</div>
+      <div id="profile-orders-list"></div>
+    </div>
+    <button class="modal-btn cancel" style="width:100%;margin-top:1rem;justify-content:center;" onclick="closeProfileModal()">Close</button>
+  </div>
+</div>
+
 <!-- JOIN MODAL -->
 <div class="modal-overlay" id="join-modal">
   <div class="modal">
     <h2>🏃 Join as Tatar</h2>
-    <p>Sign up with Google to become a tatar. Your account will be reviewed by admin before activation. Also join our Telegram group to receive orders.</p>
-    <p style="font-size:12px;color:var(--accent);margin-bottom:1rem;">After signing up, message <b>@Tatarselch_bot</b> on Telegram to activate notifications.</p>
+    <p>Sign up with Google to become a tatar. Your account will be reviewed by admin before activation.</p>
+    <p style="font-size:12px;color:var(--accent);margin-bottom:1rem;">After signing up, message <b>@Tatarselch_bot</b> on Telegram to link your account.</p>
     <button class="google-btn" onclick="window.location.href='/auth/google'">
       <img src="https://www.google.com/favicon.ico" alt="Google">
       Continue with Google

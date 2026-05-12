@@ -3,42 +3,179 @@ let currentUser = null;
 let pendingOrderId = null;
 let orderMap = null;
 let orderMarker = null;
+let orderItems = [];
 
-// ── INIT (runs on index.html) ────────────────────────────────
-if (document.getElementById('order-section')) {
+// ── INIT ─────────────────────────────────────────────────────
+if (document.getElementById('orders-list')) {
   initIndex();
 }
 
 async function initIndex() {
   currentUser = await getMe();
+
   if (currentUser) {
     document.getElementById('nav-user').style.display = 'flex';
     document.getElementById('nav-photo').src = currentUser.photo;
     document.getElementById('nav-name').textContent = currentUser.name;
     document.getElementById('join-btn').style.display = 'none';
+    const heroJoin = document.getElementById('hero-join-btn');
+    if (heroJoin) heroJoin.style.display = 'none';
   }
+
+  // restore pending order from localStorage
+  const saved = localStorage.getItem('tatar_pending_order');
+  if (saved) pendingOrderId = saved;
 
   fetchOrders();
   fetchTatars();
   fetchStats();
-  initMap();
   setInterval(fetchOrders, 5000);
   setInterval(fetchStats, 15000);
 }
 
-// ── MAP ──────────────────────────────────────────────────────
-function initMap() {
-  if (!document.getElementById('order-map')) return;
-  orderMap = L.map('order-map').setView([47.8864, 106.9057], 16);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap', maxZoom: 19
-  }).addTo(orderMap);
+// ── ORDER MODAL ──────────────────────────────────────────────
+function openOrderModal() {
+  orderItems = [];
+  renderItems();
+  addItem();
+  goToStep(1);
+  document.getElementById('contact').value = '';
+  document.getElementById('notes').value = '';
+  clearErrors();
+  document.getElementById('order-modal').classList.add('open');
+  // init map after modal opens so it renders correctly
+  setTimeout(() => {
+    if (!orderMap) {
+      orderMap = L.map('order-map').setView([47.8864, 106.9057], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap', maxZoom: 19
+      }).addTo(orderMap);
+      orderMap.on('click', e => {
+        if (orderMarker) orderMarker.remove();
+        orderMarker = L.marker(e.latlng).addTo(orderMap)
+          .bindPopup('📍 Your delivery spot').openPopup();
+        document.getElementById('map-hint').textContent = `📍 Pinned at ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      });
+    }
+    orderMap.invalidateSize();
+  }, 100);
+}
 
-  orderMap.on('click', e => {
-    if (orderMarker) orderMarker.remove();
-    orderMarker = L.marker(e.latlng).addTo(orderMap)
-      .bindPopup('📍 Your delivery spot').openPopup();
+function closeOrderModal() {
+  document.getElementById('order-modal').classList.remove('open');
+}
+
+function goToStep(n) {
+  [1, 2, 3].forEach(i => {
+    document.getElementById(`order-step-${i}`).style.display = i === n ? 'block' : 'none';
+    const dot = document.getElementById(`dot-${i}`);
+    if (dot) dot.classList.toggle('active', i <= n);
   });
+
+  if (n === 2) {
+    // validate items before proceeding
+    const valid = orderItems.every(it => it.name.trim());
+    if (!orderItems.length || !valid) {
+      goToStep(1);
+      toast('Add at least one item', 'error');
+      return;
+    }
+  }
+
+  if (n === 3) {
+    // validate contact
+    const contact = document.getElementById('contact').value.trim();
+    if (!/^\d{8}$/.test(contact)) {
+      showError('err-contact', 'Enter exactly 8 digits');
+      goToStep(2);
+      return;
+    }
+    clearErrors();
+    setTimeout(() => orderMap && orderMap.invalidateSize(), 100);
+  }
+}
+
+// ── ITEMS ────────────────────────────────────────────────────
+function addItem() {
+  orderItems.push({ name: '', qty: 1 });
+  renderItems();
+}
+
+function removeItem(idx) {
+  orderItems.splice(idx, 1);
+  renderItems();
+}
+
+function renderItems() {
+  const list = document.getElementById('items-list');
+  if (!list) return;
+  list.innerHTML = orderItems.map((item, i) => `
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+      <input type="text" placeholder="Item name (e.g. Burger)" value="${escHtml(item.name)}"
+        oninput="orderItems[${i}].name=this.value"
+        style="flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+      <input type="number" min="1" max="20" value="${item.qty}"
+        oninput="orderItems[${i}].qty=Math.max(1,Number(this.value)||1)"
+        style="width:64px;padding:10px 8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;text-align:center;">
+      ${orderItems.length > 1 ? `<button onclick="removeItem(${i})" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;">✕</button>` : ''}
+    </div>`).join('');
+}
+
+// ── POST ORDER ───────────────────────────────────────────────
+async function postOrder() {
+  const contact = document.getElementById('contact').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+
+  if (!/^\d{8}$/.test(contact)) {
+    toast('Phone must be 8 digits', 'error');
+    goToStep(2);
+    return;
+  }
+
+  const validItems = orderItems.filter(i => i.name.trim());
+  if (!validItems.length) {
+    toast('Add at least one item', 'error');
+    goToStep(1);
+    return;
+  }
+
+  const lat = orderMarker ? orderMarker.getLatLng().lat : null;
+  const lng = orderMarker ? orderMarker.getLatLng().lng : null;
+
+  const btn = document.getElementById('post-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Posting...';
+
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: validItems, contact, notes, lat, lng }),
+    });
+
+    if (!res.ok) {
+      const e = await res.json();
+      toast(e.error || 'Failed to post order', 'error');
+      return;
+    }
+
+    const order = await res.json();
+    pendingOrderId = order.id;
+    localStorage.setItem('tatar_pending_order', order.id);
+
+    closeOrderModal();
+    if (orderMarker) { orderMarker.remove(); orderMarker = null; }
+    document.getElementById('map-hint').textContent = 'No pin yet — tap anywhere on the map';
+
+    toast('✅ Order posted! Tatars have been notified.', 'success');
+    fetchOrders();
+    document.getElementById('order-section').scrollIntoView({ behavior: 'smooth' });
+  } catch(e) {
+    toast('Could not reach server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🛒 Post Order';
+  }
 }
 
 // ── FETCH DATA ───────────────────────────────────────────────
@@ -55,7 +192,6 @@ async function fetchOrders() {
       badge.textContent = `${pending} pending`;
     }
 
-    // check if current session has an order being price-confirmed or delivering
     if (pendingOrderId) {
       const mine = orders.find(o => o.id === pendingOrderId);
       if (mine) handleMyOrderStatus(mine);
@@ -74,7 +210,7 @@ async function fetchTatars() {
       return;
     }
     grid.innerHTML = tatars.map(t => `
-      <div class="tatar-card">
+      <div class="tatar-card" onclick="openProfile('${t.id}')" style="cursor:pointer;">
         <div class="tatar-avatar">
           ${t.photo ? `<img src="${t.photo}" alt="${escHtml(t.name)}">` : '🏃'}
         </div>
@@ -86,9 +222,8 @@ async function fetchTatars() {
 
 async function fetchStats() {
   try {
-    const res = await fetch('/api/tatars');
-    const tatars = await res.json();
-    const ordersRes = await fetch('/api/orders');
+    const [tatarsRes, ordersRes] = await Promise.all([fetch('/api/tatars'), fetch('/api/orders')]);
+    const tatars = await tatarsRes.json();
     const orders = await ordersRes.json();
     const delivered = orders.filter(o => o.status === 'delivered').length;
     const el = document.getElementById('stat-delivered');
@@ -96,6 +231,96 @@ async function fetchStats() {
     if (el) el.textContent = delivered;
     if (el2) el2.textContent = tatars.length;
   } catch(e) {}
+}
+
+// ── TATAR PROFILE ────────────────────────────────────────────
+async function openProfile(id) {
+  document.getElementById('profile-modal').classList.add('open');
+  document.getElementById('profile-name').textContent = '...';
+  document.getElementById('profile-deliveries').textContent = '...';
+  document.getElementById('profile-avg').textContent = '...';
+  document.getElementById('profile-orders-list').innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/tatars/${id}/profile`);
+    const data = await res.json();
+
+    const photoWrap = document.getElementById('profile-photo-wrap');
+    if (data.photo) {
+      photoWrap.innerHTML = `<img src="${data.photo}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+      photoWrap.innerHTML = '🏃';
+    }
+
+    document.getElementById('profile-name').textContent = data.name;
+    document.getElementById('profile-rating').textContent = data.avgRating ? `⭐ ${data.avgRating} rating` : 'No ratings yet';
+    document.getElementById('profile-deliveries').textContent = data.deliveries;
+    document.getElementById('profile-avg').textContent = data.avgRating || '—';
+
+    const list = document.getElementById('profile-orders-list');
+    if (!data.recentOrders.length) {
+      list.innerHTML = `<div style="font-size:13px;color:var(--muted);">No deliveries yet</div>`;
+    } else {
+      list.innerHTML = data.recentOrders.map(o => {
+        let itemText = o.item;
+        try { itemText = JSON.parse(o.item).map(i => `${i.name}${i.qty>1?` x${i.qty}`:''}`).join(', '); } catch {}
+        return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span>${escHtml(itemText)}</span>
+          <span style="color:var(--accent);">+₮${(o.fee||0).toLocaleString()}</span>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    document.getElementById('profile-name').textContent = 'Could not load';
+  }
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').classList.remove('open');
+}
+
+// ── HANDLE MY ORDER STATUS ───────────────────────────────────
+function handleMyOrderStatus(order) {
+  const priceWrap = document.getElementById('price-confirm-wrap');
+  const verifyWrap = document.getElementById('verify-wrap');
+
+  if (order.status === 'price_pending') {
+    priceWrap.style.display = 'block';
+    verifyWrap.style.display = 'none';
+    document.getElementById('confirm-price-amt').textContent = order.tatar_price?.toLocaleString();
+    document.getElementById('confirm-fee-amt').textContent = order.fee?.toLocaleString();
+    document.getElementById('confirm-total-amt').textContent = order.total?.toLocaleString();
+  } else if (order.status === 'delivering') {
+    priceWrap.style.display = 'none';
+    verifyWrap.style.display = 'block';
+    document.getElementById('verify-code-display').textContent = order.verify_code || '----';
+  } else if (order.status === 'delivered' || order.status === 'cancelled') {
+    priceWrap.style.display = 'none';
+    verifyWrap.style.display = 'none';
+    pendingOrderId = null;
+    localStorage.removeItem('tatar_pending_order');
+    if (order.status === 'delivered') toast('🎉 Your order was delivered!', 'success');
+  }
+}
+
+async function confirmPrice(accepted) {
+  if (!pendingOrderId) return;
+  try {
+    const res = await fetch(`/api/orders/${pendingOrderId}/confirm-price`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accepted }),
+    });
+    if (res.ok) {
+      if (accepted) toast('✅ Confirmed! Your tatar is on the way.', 'success');
+      else {
+        toast('Order cancelled.', 'error');
+        pendingOrderId = null;
+        localStorage.removeItem('tatar_pending_order');
+      }
+      fetchOrders();
+    }
+  } catch(e) { toast('Failed', 'error'); }
 }
 
 // ── RENDER ORDERS ────────────────────────────────────────────
@@ -122,16 +347,18 @@ function renderOrderList(container, orders, isAdmin) {
     cancelled: '❌ Cancelled',
   };
 
-  container.innerHTML = visible.map(o => `
+  container.innerHTML = visible.map(o => {
+    let itemText = o.item;
+    try { itemText = JSON.parse(o.item).map(i => `${i.name}${i.qty>1?` ×${i.qty}`:''}`).join(', '); } catch {}
+    return `
     <div class="order-card ${o.status}">
       <div class="order-avatar">🍽️</div>
       <div class="order-body">
-        <div class="order-title">${escHtml(o.item)}${o.quantity > 1 ? ` ×${o.quantity}` : ''}</div>
+        <div class="order-title">${escHtml(itemText)}</div>
         <div class="order-meta">
-          <span>📍 ${escHtml(o.location)}</span>
-          <span>🏠 ${escHtml(o.deliver_building)}, ${escHtml(o.deliver_room)}</span>
           <span>⏰ ${o.time || new Date(o.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
           ${o.tatar ? `<span>🏃 ${escHtml(o.tatar.name)}</span>` : ''}
+          ${o.lat && o.lng ? `<span><a href="https://maps.google.com/?q=${o.lat},${o.lng}" target="_blank" style="color:var(--accent);">📍 View location</a></span>` : ''}
         </div>
         ${o.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">📝 ${escHtml(o.notes)}</div>` : ''}
         ${isAdmin ? `<div style="margin-top:8px;"><button class="reject-btn" style="font-size:11px;padding:4px 10px;" onclick="cancelOrder('${o.id}')">Cancel</button></div>` : ''}
@@ -139,127 +366,16 @@ function renderOrderList(container, orders, isAdmin) {
       <div class="order-right">
         <span class="status-pill status-${o.status}">${statusText[o.status] || o.status}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-// ── POST ORDER ───────────────────────────────────────────────
-async function postOrder() {
-  const item = document.getElementById('item').value.trim();
-  const quantity = document.getElementById('quantity').value;
-  const location = document.getElementById('location').value;
-  const building = document.getElementById('deliver-building').value;
-  const room = document.getElementById('deliver-room').value;
-  const contact = document.getElementById('contact').value.trim();
-  const notes = document.getElementById('notes').value.trim();
-
-  clearErrors();
-  let valid = true;
-
-  if (!item) { showError('err-item', 'Required'); valid = false; }
-  if (!quantity || isNaN(quantity) || Number(quantity) < 1) { showError('err-quantity', 'Must be a number ≥ 1'); valid = false; }
-  if (!location) { showError('err-location', 'Select a pick-up spot'); valid = false; }
-  if (!building) { showError('err-building', 'Select a building'); valid = false; }
-  if (!room || isNaN(room)) { showError('err-room', 'Enter a valid room number'); valid = false; }
-  if (!contact) { showError('err-contact', 'Required'); valid = false; }
-  else if (!/^\d{4}-\d{4}$/.test(contact)) { showError('err-contact', 'Format must be XXXX-XXXX'); valid = false; }
-
-  if (!valid) return;
-
-  const btn = document.getElementById('post-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Posting...';
-
-  try {
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        item, quantity: Number(quantity), location,
-        deliver_building: building, deliver_room: room,
-        contact, notes,
-      }),
-    });
-
-    if (!res.ok) {
-      const e = await res.json();
-      toast(e.error || 'Failed to post order', 'error');
-      return;
-    }
-
-    const order = await res.json();
-    pendingOrderId = order.id;
-
-    // clear form
-    ['item','quantity','deliver-room','contact','notes'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    document.getElementById('location').value = '';
-    document.getElementById('deliver-building').value = '';
-    if (orderMarker) { orderMarker.remove(); orderMarker = null; }
-
-    toast('✅ Order posted! Tatars have been notified.', 'success');
-    fetchOrders();
-    document.getElementById('order-section').scrollIntoView({ behavior: 'smooth' });
-  } catch(e) {
-    toast('Could not reach server', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🛒 Post Order — Tatars Will Be Notified';
-  }
-}
-
-// ── HANDLE MY ORDER STATUS CHANGES ──────────────────────────
-function handleMyOrderStatus(order) {
-  const formCard = document.getElementById('order-form-card');
-  const priceBox = document.getElementById('price-confirm-box');
-  const verifyBox = document.getElementById('verify-box');
-
-  if (order.status === 'price_pending') {
-    formCard.style.display = 'none';
-    priceBox.style.display = 'block';
-    verifyBox.style.display = 'none';
-    document.getElementById('confirm-price-amt').textContent = order.tatar_price?.toLocaleString();
-    document.getElementById('confirm-fee-amt').textContent = order.fee?.toLocaleString();
-    document.getElementById('confirm-total-amt').textContent = order.total?.toLocaleString();
-  } else if (order.status === 'delivering') {
-    formCard.style.display = 'none';
-    priceBox.style.display = 'none';
-    verifyBox.style.display = 'block';
-    document.getElementById('verify-code-display').textContent = order.verify_code || '----';
-  } else if (order.status === 'delivered' || order.status === 'cancelled') {
-    formCard.style.display = 'block';
-    priceBox.style.display = 'none';
-    verifyBox.style.display = 'none';
-    pendingOrderId = null;
-    if (order.status === 'delivered') {
-      toast('🎉 Your order was delivered!', 'success');
-    }
-  }
-}
-
-async function confirmPrice(accepted) {
-  if (!pendingOrderId) return;
-  try {
-    const res = await fetch(`/api/orders/${pendingOrderId}/confirm-price`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accepted }),
-    });
-    if (res.ok) {
-      if (accepted) toast('✅ Confirmed! Your tatar is on the way.', 'success');
-      else { toast('Order cancelled.', 'error'); pendingOrderId = null; }
-      fetchOrders();
-    }
-  } catch(e) { toast('Failed', 'error'); }
-}
-
-// ── TELEGRAM USERNAME ────────────────────────────────────────
+// ── PHONE (TATAR PENDING PAGE) ───────────────────────────────
 async function savePhone() {
   const input = document.getElementById('tg-phone');
   const msg = document.getElementById('tg-msg');
-  const phone = input.value.trim();
-  if (!phone) { msg.style.color = 'var(--error)'; msg.textContent = 'Enter your phone number'; return; }
+  const phone = input.value.trim().replace(/\D/g, '').slice(-8);
+  if (phone.length !== 8) { msg.style.color = 'var(--error)'; msg.textContent = 'Enter exactly 8 digits'; return; }
   const res = await fetch('/auth/phone', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -295,9 +411,10 @@ function closeJoinModal() {
   document.getElementById('join-modal')?.classList.remove('open');
 }
 
-// close modal on backdrop click
 document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('open');
+  });
 });
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -312,15 +429,12 @@ function showError(id, msg) {
   if (!el) return;
   el.textContent = msg;
   el.classList.add('show');
-  const input = el.previousElementSibling;
-  if (input) input.classList.add('error');
 }
 
 function clearErrors() {
   document.querySelectorAll('.field-error').forEach(el => {
     el.classList.remove('show'); el.textContent = '';
   });
-  document.querySelectorAll('input.error, select.error').forEach(el => el.classList.remove('error'));
 }
 
 function toast(msg, type) {

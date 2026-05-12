@@ -38,23 +38,17 @@ app.post('/telegram/webhook', async (req, res) => {
   if (message?.contact) {
     const telegramId = message.from.id;
     // normalize: strip all non-digit chars except leading +
-    const normalize = p => p.replace(/[\s\-().]/g, '');
-    const tgPhone = normalize(message.contact.phone_number);
+    // strip everything except digits, then take last 8 digits (local number)
+    const digits = message.contact.phone_number.replace(/\D/g, '');
+    const local8 = digits.slice(-8);
 
-    // try exact match first, then with/without leading +
-    const candidates = [tgPhone, tgPhone.startsWith('+') ? tgPhone.slice(1) : '+' + tgPhone];
-
-    let matched = null;
-    for (const phone of candidates) {
-      const { data } = await supabase
-        .from('users')
-        .update({ telegram_id: telegramId })
-        .eq('phone', phone)
-        .eq('role', 'tatar')
-        .select()
-        .single();
-      if (data) { matched = data; break; }
-    }
+    const { data: matched } = await supabase
+      .from('users')
+      .update({ telegram_id: telegramId })
+      .eq('phone', local8)
+      .eq('role', 'tatar')
+      .select()
+      .single();
 
     if (matched) {
       await telegram.sendText(telegramId, `✅ Linked! Your Telegram is now connected to your TATAR account (${matched.name}). Wait for admin approval.`);

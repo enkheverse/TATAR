@@ -371,6 +371,13 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
 .pending-card h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
 .pending-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
 
+/* ── ORDER MODAL STEPS ── */
+.modal-wide { max-width: 520px; width: 100%; }
+.step-indicators { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 1.5rem; }
+.step-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border); transition: background .2s; }
+.step-dot.active { background: var(--accent); }
+.step-line { flex: 1; max-width: 48px; height: 2px; background: var(--border); }
+
 /* ── FOOTER ── */
 footer {
   text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 12px;

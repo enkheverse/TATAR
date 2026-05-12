@@ -56,4 +56,46 @@ router.get('/stats', async (req, res) => {
   });
 });
 
+// GET tatar public profile
+router.get('/:id/profile', async (req, res) => {
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, name, photo, created_at')
+    .eq('id', req.params.id)
+    .eq('role', 'tatar')
+    .eq('status', 'approved')
+    .single();
+  if (!user) return res.status(404).json({ error: 'Not found' });
+
+  const { data: delivered } = await supabase
+    .from('orders')
+    .select('id, item, total, fee, delivered_at')
+    .eq('tatar_id', req.params.id)
+    .eq('status', 'delivered')
+    .order('delivered_at', { ascending: false })
+    .limit(5);
+
+  const { data: ratings } = await supabase
+    .from('ratings')
+    .select('stars')
+    .eq('tatar_id', req.params.id);
+
+  const { count: totalDeliveries } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('tatar_id', req.params.id)
+    .eq('status', 'delivered');
+
+  const avgRating = ratings?.length
+    ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length).toFixed(1)
+    : null;
+
+  res.json({
+    ...user,
+    deliveries: totalDeliveries || 0,
+    avgRating,
+    recentOrders: delivered || [],
+  });
+});
+
 module.exports = router;

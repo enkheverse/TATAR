@@ -15,31 +15,31 @@ router.get('/', async (req, res) => {
 
 // POST place new order (any visitor)
 router.post('/', async (req, res) => {
-  const { item, quantity, location, deliver_building, deliver_room, contact, notes } = req.body;
+  const { items, contact, notes, lat, lng } = req.body;
 
-  if (!item || !quantity || !location || !deliver_building || !deliver_room || !contact) {
-    return res.status(400).json({ error: 'All required fields must be filled' });
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Add at least one item' });
   }
-  if (isNaN(quantity) || Number(quantity) < 1) {
-    return res.status(400).json({ error: 'Quantity must be a positive number' });
-  }
-  if (!/^\d{4}-\d{4}$/.test(contact)) {
-    return res.status(400).json({ error: 'Contact must be in format XXXX-XXXX' });
+  if (!contact || !/^\d{8}$/.test(contact)) {
+    return res.status(400).json({ error: 'Phone must be exactly 8 digits' });
   }
 
+  const itemText = JSON.stringify(items.map(i => ({ name: String(i.name).slice(0, 100), qty: Math.max(1, Number(i.qty) || 1) })));
   const customer_id = req.user?.id || null;
 
   const { data: order, error } = await supabase
     .from('orders')
     .insert({
       customer_id,
-      item: String(item).slice(0, 200),
-      quantity: Math.max(1, Math.round(Number(quantity))),
-      location: String(location).slice(0, 100),
-      deliver_building: String(deliver_building).slice(0, 100),
-      deliver_room: String(deliver_room).slice(0, 20),
-      contact: String(contact).slice(0, 20),
+      item: itemText,
+      quantity: items.length,
+      location: lat && lng ? `${lat},${lng}` : '',
+      deliver_building: '',
+      deliver_room: '',
+      contact: String(contact),
       notes: String(notes || '').slice(0, 300),
+      lat: lat || null,
+      lng: lng || null,
       status: 'pending',
     })
     .select()

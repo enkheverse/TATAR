@@ -18,12 +18,20 @@ async function call(method, body) {
   }
 }
 
+function parseItems(itemField) {
+  try {
+    const arr = JSON.parse(itemField);
+    return arr.map(i => `${i.name}${i.qty > 1 ? ` x${i.qty}` : ''}`).join(', ');
+  } catch {
+    return itemField;
+  }
+}
+
 async function postNewOrder(order) {
   const text =
     `🆕 <b>NEW ORDER #${order.id.toString().slice(-4)}</b>\n` +
-    `🍽 ${order.item}${order.quantity > 1 ? ` x${order.quantity}` : ''}\n` +
-    `📍 Pick up: ${order.location}\n` +
-    `🏠 Deliver: ${order.deliver_building}, Room ${order.deliver_room}\n` +
+    `🍽 ${parseItems(order.item)}\n` +
+    (order.lat && order.lng ? `📍 Location: <a href="https://maps.google.com/?q=${order.lat},${order.lng}">View on map</a>\n` : '') +
     `📞 Customer: ${order.contact}\n` +
     (order.notes ? `📝 Notes: ${order.notes}\n` : '') +
     `\n💰 <i>Enter price after you see it at the store</i>`;
