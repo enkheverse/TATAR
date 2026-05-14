@@ -93,11 +93,35 @@
 <div id="order-section">
   <div class="section" id="price-confirm-wrap" style="display:none;">
     <div class="price-box">
-      <div class="verify-label">Your tatar found the item — here's the real price:</div>
-      <div class="price-amount">₮<span id="confirm-price-amt">0</span></div>
-      <div class="price-fee">+ ₮<span id="confirm-fee-amt">0</span> delivery fee = <b>₮<span id="confirm-total-amt">0</span> total</b></div>
+      <div class="verify-label" style="font-size:15px;font-weight:700;margin-bottom:12px;">💳 Payment Required</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Your tatar is at the store. Pay the delivery fee to proceed.</div>
+
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">
+        <span style="color:var(--muted);">Item price (cash to tatar)</span>
+        <span>₮<span id="confirm-price-amt">0</span></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;">
+        <span style="color:var(--muted);">Delivery fee</span>
+        <b style="color:var(--accent);">₮<span id="confirm-fee-amt">0</span></b>
+      </div>
+
+      <div style="margin:16px 0;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Scan with your banking app</div>
+        <img id="qr-img" src="" alt="QR Code" style="width:160px;height:160px;border-radius:12px;border:2px solid var(--border);">
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">(Mock QPay — real integration coming soon)</div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">Type the delivery fee amount to confirm:</label>
+        <div style="display:flex;gap:8px;">
+          <span style="padding:10px 12px;background:var(--border);border-radius:10px 0 0 10px;font-size:14px;color:var(--muted);">₮</span>
+          <input type="number" id="pay-amount" placeholder="0" style="flex:1;padding:10px 12px;border-radius:0 10px 10px 0;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+        </div>
+        <div id="pay-error" style="font-size:12px;color:#ff4444;margin-top:4px;"></div>
+      </div>
+
       <div class="price-actions">
-        <button class="btn-accept" onclick="confirmPrice(true)">✅ Accept & Continue</button>
+        <button class="btn-accept" onclick="payFee()">✅ Pay Fee</button>
         <button class="btn-decline" onclick="confirmPrice(false)">❌ Cancel Order</button>
       </div>
     </div>

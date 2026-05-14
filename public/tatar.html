@@ -23,10 +23,18 @@
 
 <div class="section" style="max-width:640px;">
   <p class="section-tag">Tatar Dashboard</p>
-  <h2 class="section-title">Your Overview</h2>
+
+  <!-- Profile header -->
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+    <img id="profile-img" src="" alt="" style="width:56px;height:56px;border-radius:50%;background:var(--border);">
+    <div>
+      <div id="profile-name" style="font-size:18px;font-weight:700;"></div>
+      <div id="profile-status" style="font-size:12px;color:var(--accent);margin-top:2px;">✅ Active Tatar</div>
+    </div>
+  </div>
 
   <!-- Stats -->
-  <div class="dash-stats">
+  <div class="dash-stats" style="margin-bottom:1.5rem;">
     <div class="dash-stat">
       <div class="dash-stat-num" id="stat-deliveries">0</div>
       <div class="dash-stat-label">Deliveries</div>
@@ -41,57 +49,119 @@
     </div>
   </div>
 
-  <!-- Active order -->
-  <div id="active-order-section" style="display:none;">
-    <p class="section-tag" style="margin-top:1.5rem;">Active Order</p>
-    <div class="active-order-card" id="active-order-card">
-      <div class="active-order-title">🏃 You have an active order</div>
-      <div class="order-detail-row"><span class="order-detail-label">Item</span><span id="ao-item">—</span></div>
-      <div class="order-detail-row"><span class="order-detail-label">Quantity</span><span id="ao-qty">—</span></div>
-      <div class="order-detail-row"><span class="order-detail-label">Pick up from</span><span id="ao-location">—</span></div>
-      <div class="order-detail-row"><span class="order-detail-label">Deliver to</span><span id="ao-deliver">—</span></div>
-      <div class="order-detail-row"><span class="order-detail-label">Customer phone</span><span id="ao-contact">—</span></div>
-      <div class="order-detail-row" id="ao-notes-row" style="display:none;"><span class="order-detail-label">Notes</span><span id="ao-notes">—</span></div>
-      <div class="order-detail-row"><span class="order-detail-label">Status</span><span id="ao-status">—</span></div>
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTatarTab('active')">📦 Active Order</button>
+    <button class="admin-tab" onclick="switchTatarTab('history')">📋 History</button>
+    <button class="admin-tab" onclick="switchTatarTab('settings')">⚙️ Settings</button>
+  </div>
 
-      <!-- Price entry (shown when status is 'taken') -->
-      <div id="price-entry" style="display:none;">
-        <p style="font-size:12px;color:var(--muted);margin-top:1rem;margin-bottom:6px;">You're at the store — enter the real price so the customer can confirm:</p>
-        <div class="price-entry-wrap">
-          <span class="currency">₮</span>
-          <input type="number" id="price-input" class="modal-input" placeholder="Enter price..." min="1" style="margin-bottom:0;">
-          <button class="btn btn-primary" onclick="submitPrice()" style="white-space:nowrap;padding:10px 16px;border-radius:9px;font-size:13px;">Send Price</button>
+  <!-- Active Order Tab -->
+  <div id="tab-active">
+    <div id="active-order-section" style="display:none;">
+      <div class="active-order-card" id="active-order-card">
+        <div class="active-order-title">🏃 Active Order</div>
+
+        <div class="order-detail-row"><span class="order-detail-label">Items</span><span id="ao-item">—</span></div>
+        <div class="order-detail-row"><span class="order-detail-label">Customer phone</span><span id="ao-contact">—</span></div>
+        <div class="order-detail-row" id="ao-notes-row" style="display:none;"><span class="order-detail-label">Notes</span><span id="ao-notes">—</span></div>
+        <div class="order-detail-row" id="ao-map-row" style="display:none;">
+          <span class="order-detail-label">Delivery location</span>
+          <a id="ao-map-link" href="#" target="_blank" style="color:var(--accent);font-size:13px;">📍 View on map</a>
+        </div>
+        <div class="order-detail-row"><span class="order-detail-label">Status</span><span id="ao-status">—</span></div>
+
+        <!-- Price entry -->
+        <div id="price-entry" style="display:none;">
+          <p style="font-size:12px;color:var(--muted);margin-top:1rem;margin-bottom:6px;">You're at the store — enter the real price so the customer can pay:</p>
+          <div class="price-entry-wrap">
+            <span class="currency">₮</span>
+            <input type="number" id="price-input" class="modal-input" placeholder="Enter price..." min="1" style="margin-bottom:0;">
+            <button class="btn btn-primary" onclick="submitPrice()" style="white-space:nowrap;padding:10px 16px;border-radius:9px;font-size:13px;">Send Price</button>
+          </div>
+        </div>
+
+        <!-- Waiting for payment -->
+        <div id="price-waiting" style="display:none;">
+          <p style="font-size:13px;color:var(--accent);margin-top:1rem;">⏳ Waiting for customer to pay delivery fee...</p>
+        </div>
+
+        <!-- Code entry -->
+        <div id="code-entry" style="display:none;">
+          <p style="font-size:12px;color:var(--muted);margin-top:1rem;margin-bottom:6px;">Customer paid! Deliver the food and enter their 4-digit code:</p>
+          <div class="code-input-wrap">
+            <input type="number" class="code-input" id="verify-input" placeholder="0000" maxlength="4">
+            <button class="btn btn-primary" onclick="submitCode()" style="padding:10px 18px;border-radius:9px;font-size:13px;white-space:nowrap;">✅ Confirm</button>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Waiting for customer to confirm price -->
-      <div id="price-waiting" style="display:none;">
-        <p style="font-size:13px;color:var(--info);margin-top:1rem;">⏳ Waiting for customer to confirm the price...</p>
-      </div>
-
-      <!-- Code entry (shown when status is 'delivering') -->
-      <div id="code-entry" style="display:none;">
-        <p style="font-size:12px;color:var(--muted);margin-top:1rem;margin-bottom:6px;">Food delivered? Ask the customer for their 4-digit code:</p>
-        <div class="code-input-wrap">
-          <input type="number" class="code-input" id="verify-input" placeholder="0000" maxlength="4">
-          <button class="btn btn-primary" onclick="submitCode()" style="padding:10px 18px;border-radius:9px;font-size:13px;white-space:nowrap;">✅ Confirm</button>
-        </div>
+    <div id="no-order-section">
+      <div class="empty-state" style="margin-top:1.5rem;">
+        <div class="empty-icon">📱</div>
+        <div class="empty-title">No active order</div>
+        <div class="empty-sub">Check Telegram for new orders. Tap "Take this order" to claim one.</div>
       </div>
     </div>
   </div>
 
-  <!-- No active order -->
-  <div id="no-order-section">
-    <div class="empty-state" style="margin-top:1.5rem;">
-      <div class="empty-icon">📱</div>
-      <div class="empty-title">No active order</div>
-      <div class="empty-sub">Check your Telegram group for new orders. Tap "Take this order" to claim one.</div>
+  <!-- History Tab -->
+  <div id="tab-history" style="display:none;">
+    <div id="history-list" style="margin-top:1rem;"></div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div id="tab-settings" style="display:none;">
+    <div style="margin-top:1.2rem;">
+      <p class="section-tag">Bank Account</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1.2rem;">Your delivery earnings will be sent here after each confirmed delivery.</p>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Bank name</label>
+        <select id="bank-name" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+          <option value="">Select your bank...</option>
+          <option>Khan Bank (Хаан Банк)</option>
+          <option>Golomt Bank (Голомт Банк)</option>
+          <option>TDB (Худалдаа Хөгжлийн Банк)</option>
+          <option>State Bank (Төрийн Банк)</option>
+          <option>Xac Bank (ХасБанк)</option>
+          <option>Capitron Bank</option>
+          <option>Bogd Bank</option>
+          <option>Arig Bank</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Account number</label>
+        <input type="text" id="bank-account" placeholder="e.g. 5000123456" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.2rem;">
+        <label class="form-label">Account holder name</label>
+        <input type="text" id="bank-account-name" placeholder="Full name as on bank account" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;">
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="saveBank()">💾 Save Bank Info</button>
+      <div id="bank-msg" style="font-size:13px;margin-top:8px;text-align:center;"></div>
     </div>
   </div>
 </div>
 
 <script src="app.js"></script>
 <script>
+let currentOrderId = null;
+
+function switchTatarTab(tab) {
+  ['active','history','settings'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.admin-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', i === ['active','history','settings'].indexOf(tab));
+  });
+  if (tab === 'history') loadHistory();
+}
+
 async function initTatar() {
   const user = await getMe();
   if (!user) return window.location.href = '/';
@@ -99,6 +169,13 @@ async function initTatar() {
 
   document.getElementById('nav-name').textContent = user.name;
   document.getElementById('nav-photo').src = user.photo;
+  document.getElementById('profile-img').src = user.photo;
+  document.getElementById('profile-name').textContent = user.name;
+
+  // pre-fill bank info if saved
+  if (user.bank_name) document.getElementById('bank-name').value = user.bank_name;
+  if (user.bank_account) document.getElementById('bank-account').value = user.bank_account;
+  if (user.bank_account_name) document.getElementById('bank-account-name').value = user.bank_account_name;
 
   loadStats();
   loadActiveOrder();
@@ -110,12 +187,10 @@ async function loadStats() {
     const res = await fetch('/api/tatars/stats');
     const s = await res.json();
     document.getElementById('stat-deliveries').textContent = s.deliveries;
-    document.getElementById('stat-earned').textContent = `₮${s.totalEarned.toLocaleString()}`;
+    document.getElementById('stat-earned').textContent = `₮${(s.totalEarned||0).toLocaleString()}`;
     document.getElementById('stat-rating').textContent = s.avgRating ? `${s.avgRating}★` : '—';
   } catch(e) {}
 }
-
-let currentOrderId = null;
 
 async function loadActiveOrder() {
   try {
@@ -132,16 +207,24 @@ async function loadActiveOrder() {
     document.getElementById('active-order-section').style.display = 'block';
     document.getElementById('no-order-section').style.display = 'none';
 
-    document.getElementById('ao-item').textContent = order.item;
-    document.getElementById('ao-qty').textContent = order.quantity;
-    document.getElementById('ao-location').textContent = order.location;
-    document.getElementById('ao-deliver').textContent = `${order.deliver_building}, Room ${order.deliver_room}`;
-    document.getElementById('ao-contact').textContent = order.contact;
+    // parse items
+    let itemText = order.item;
+    try {
+      const items = JSON.parse(order.item);
+      itemText = items.map(i => `${i.name}${i.qty > 1 ? ` x${i.qty}` : ''}`).join(', ');
+    } catch {}
+    document.getElementById('ao-item').textContent = itemText;
+    document.getElementById('ao-contact').textContent = '+976 ' + order.contact;
     document.getElementById('ao-status').textContent = order.status.replace('_', ' ').toUpperCase();
 
     if (order.notes) {
       document.getElementById('ao-notes-row').style.display = 'flex';
       document.getElementById('ao-notes').textContent = order.notes;
+    }
+
+    if (order.lat && order.lng) {
+      document.getElementById('ao-map-row').style.display = 'flex';
+      document.getElementById('ao-map-link').href = `https://maps.google.com/?q=${order.lat},${order.lng}`;
     }
 
     document.getElementById('price-entry').style.display = order.status === 'taken' ? 'block' : 'none';
@@ -150,32 +233,53 @@ async function loadActiveOrder() {
   } catch(e) {}
 }
 
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/tatars/history');
+    const orders = await res.json();
+    const el = document.getElementById('history-list');
+    if (!orders.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No orders yet</div></div>`;
+      return;
+    }
+    el.innerHTML = orders.map(o => {
+      let itemText = o.item;
+      try { itemText = JSON.parse(o.item).map(i => `${i.name}${i.qty>1?` x${i.qty}`:''}`).join(', '); } catch {}
+      const statusColor = o.status === 'delivered' ? 'var(--accent)' : 'var(--muted)';
+      return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:14px;font-weight:600;">${escHtml(itemText)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${new Date(o.created_at).toLocaleDateString()}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:700;color:${statusColor};">
+            ${o.status === 'delivered' ? `+₮${(o.tatar_payout||0).toLocaleString()}` : o.status}
+          </div>
+          ${o.status === 'delivered' ? `<div style="font-size:11px;color:var(--muted);">fee ₮${(o.fee||0).toLocaleString()}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
 async function submitPrice() {
   const price = document.getElementById('price-input').value;
-  if (!price || isNaN(price) || Number(price) < 1) {
-    toast('Enter a valid price', 'error'); return;
-  }
+  if (!price || isNaN(price) || Number(price) < 1) { toast('Enter a valid price', 'error'); return; }
   try {
     const res = await fetch(`/api/orders/${currentOrderId}/price`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ price: Number(price) }),
     });
-    if (res.ok) {
-      toast('✅ Price sent to customer!', 'success');
-      loadActiveOrder();
-    } else {
-      const e = await res.json();
-      toast(e.error, 'error');
-    }
-  } catch(e) { toast('Failed to send price', 'error'); }
+    if (res.ok) { toast('✅ Price sent! Waiting for customer to pay.', 'success'); loadActiveOrder(); }
+    else { const e = await res.json(); toast(e.error, 'error'); }
+  } catch(e) { toast('Failed', 'error'); }
 }
 
 async function submitCode() {
   const code = document.getElementById('verify-input').value;
-  if (!code || code.length !== 4) {
-    toast('Enter the 4-digit code', 'error'); return;
-  }
+  if (!code || code.length !== 4) { toast('Enter the 4-digit code', 'error'); return; }
   try {
     const res = await fetch(`/api/orders/${currentOrderId}/deliver`, {
       method: 'PATCH',
@@ -183,14 +287,39 @@ async function submitCode() {
       body: JSON.stringify({ code }),
     });
     if (res.ok) {
-      toast('🎉 Delivery confirmed! Great work!', 'success');
+      toast('🎉 Delivery confirmed! Payout queued.', 'success');
       loadStats();
       loadActiveOrder();
     } else {
       const e = await res.json();
       toast(e.error, 'error');
     }
-  } catch(e) { toast('Failed to confirm delivery', 'error'); }
+  } catch(e) { toast('Failed', 'error'); }
+}
+
+async function saveBank() {
+  const bank_name = document.getElementById('bank-name').value;
+  const bank_account = document.getElementById('bank-account').value.trim();
+  const bank_account_name = document.getElementById('bank-account-name').value.trim();
+  const msg = document.getElementById('bank-msg');
+
+  if (!bank_name || !bank_account || !bank_account_name) {
+    msg.style.color = '#ff4444'; msg.textContent = 'Fill in all fields'; return;
+  }
+
+  const res = await fetch('/api/tatars/bank', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bank_name, bank_account, bank_account_name }),
+  });
+
+  if (res.ok) {
+    msg.style.color = 'var(--accent)';
+    msg.textContent = '✅ Bank info saved!';
+  } else {
+    msg.style.color = '#ff4444';
+    msg.textContent = 'Failed to save';
+  }
 }
 
 initTatar();

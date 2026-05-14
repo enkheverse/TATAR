@@ -80,30 +80,50 @@ router.patch('/:id/price', async (req, res) => {
   res.json(order);
 });
 
-// PATCH customer confirms or rejects price
+// PATCH customer pays delivery fee (mock QPay)
+router.patch('/:id/pay', async (req, res) => {
+  const { amount } = req.body;
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('status', 'price_pending')
+    .single();
+
+  if (!order) return res.status(404).json({ error: 'Order not found or already paid' });
+  if (Number(amount) !== order.fee) {
+    return res.status(400).json({ error: `Amount must be exactly ₮${order.fee}` });
+  }
+
+  const code = generateCode();
+  // deduct 1% transaction fee + 10% tax = tatar gets 89%
+  const tatar_payout = Math.floor(order.fee * 0.89);
+
+  const { data: updated, error } = await supabase
+    .from('orders')
+    .update({ status: 'delivering', verify_code: code, payment_status: 'paid', tatar_payout })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error || !updated) return res.status(500).json({ error: 'Payment failed' });
+  res.json(updated);
+});
+
+// PATCH customer cancels order
 router.patch('/:id/confirm-price', async (req, res) => {
   const { accepted } = req.body;
+  if (accepted) return res.status(400).json({ error: 'Use /pay endpoint to confirm payment' });
 
-  if (accepted) {
-    const code = generateCode();
-    const { data: order, error } = await supabase
-      .from('orders')
-      .update({ status: 'delivering', verify_code: code })
-      .eq('id', req.params.id)
-      .select()
-      .single();
-    if (error || !order) return res.status(404).json({ error: 'Order not found' });
-    res.json(order);
-  } else {
-    const { data: order } = await supabase
-      .from('orders')
-      .update({ status: 'cancelled' })
-      .eq('id', req.params.id)
-      .select()
-      .single();
-    await telegram.notify(`❌ Customer rejected the price on order #${req.params.id.slice(-4)}`);
-    res.json(order);
-  }
+  const { data: order } = await supabase
+    .from('orders')
+    .update({ status: 'cancelled' })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  await telegram.notify(`❌ Customer cancelled order #${req.params.id.slice(-4)}`);
+  res.json(order);
 });
 
 // PATCH tatar submits verify code to complete delivery

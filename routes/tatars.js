@@ -13,6 +13,29 @@ router.get('/', async (req, res) => {
   res.json(data);
 });
 
+// PATCH save bank account info
+router.patch('/bank', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Login required' });
+  const { bank_name, bank_account, bank_account_name } = req.body;
+  if (!bank_name || !bank_account || !bank_account_name) {
+    return res.status(400).json({ error: 'All bank fields required' });
+  }
+  await supabase.from('users').update({ bank_name, bank_account, bank_account_name }).eq('id', req.user.id);
+  res.json({ success: true });
+});
+
+// GET tatar order history
+router.get('/history', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Login required' });
+  const { data } = await supabase
+    .from('orders')
+    .select('id, item, fee, tatar_payout, payment_status, status, delivered_at, created_at')
+    .eq('tatar_id', req.user.id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  res.json(data || []);
+});
+
 // GET tatar's active order
 router.get('/my-order', async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Login required' });

@@ -80,6 +80,34 @@ router.delete('/orders/:id', requireAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
+// GET payouts overview
+router.get('/payouts', requireAdmin, async (req, res) => {
+  const { data } = await supabase
+    .from('orders')
+    .select('id, item, fee, tatar_payout, delivered_at, tatar:tatar_id(id, name, bank_name, bank_account, bank_account_name)')
+    .eq('status', 'delivered')
+    .eq('payment_status', 'paid')
+    .order('delivered_at', { ascending: false });
+
+  // group by tatar
+  const grouped = {};
+  (data || []).forEach(o => {
+    if (!o.tatar) return;
+    const tid = o.tatar.id;
+    if (!grouped[tid]) {
+      grouped[tid] = {
+        tatar: o.tatar,
+        totalPayout: 0,
+        orders: [],
+      };
+    }
+    grouped[tid].totalPayout += (o.tatar_payout || 0);
+    grouped[tid].orders.push(o);
+  });
+
+  res.json(Object.values(grouped));
+});
+
 // GET overview stats
 router.get('/stats', requireAdmin, async (req, res) => {
   const [{ count: totalOrders }, { count: delivered }, { count: pending }, { count: tatars }] =

@@ -287,9 +287,12 @@ function handleMyOrderStatus(order) {
   if (order.status === 'price_pending') {
     priceWrap.style.display = 'block';
     verifyWrap.style.display = 'none';
-    document.getElementById('confirm-price-amt').textContent = order.tatar_price?.toLocaleString();
-    document.getElementById('confirm-fee-amt').textContent = order.fee?.toLocaleString();
-    document.getElementById('confirm-total-amt').textContent = order.total?.toLocaleString();
+    document.getElementById('confirm-price-amt').textContent = (order.tatar_price || 0).toLocaleString();
+    document.getElementById('confirm-fee-amt').textContent = (order.fee || 0).toLocaleString();
+    // generate mock QR with fee amount
+    const fee = order.fee || 0;
+    document.getElementById('qr-img').src =
+      `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=TATAR-MOCK-PAY-${fee}MNT&color=ff5c1a&bgcolor=111111`;
   } else if (order.status === 'delivering') {
     priceWrap.style.display = 'none';
     verifyWrap.style.display = 'block';
@@ -303,21 +306,41 @@ function handleMyOrderStatus(order) {
   }
 }
 
+async function payFee() {
+  if (!pendingOrderId) return;
+  const amount = Number(document.getElementById('pay-amount').value);
+  const errEl = document.getElementById('pay-error');
+  errEl.textContent = '';
+
+  try {
+    const res = await fetch(`/api/orders/${pendingOrderId}/pay`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount }),
+    });
+    if (res.ok) {
+      toast('✅ Payment confirmed! Tatar is on the way.', 'success');
+      fetchOrders();
+    } else {
+      const e = await res.json();
+      errEl.textContent = e.error || 'Payment failed';
+    }
+  } catch(e) { errEl.textContent = 'Could not reach server'; }
+}
+
 async function confirmPrice(accepted) {
   if (!pendingOrderId) return;
+  if (accepted) return; // use payFee() instead
   try {
     const res = await fetch(`/api/orders/${pendingOrderId}/confirm-price`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accepted }),
+      body: JSON.stringify({ accepted: false }),
     });
     if (res.ok) {
-      if (accepted) toast('✅ Confirmed! Your tatar is on the way.', 'success');
-      else {
-        toast('Order cancelled.', 'error');
-        pendingOrderId = null;
-        localStorage.removeItem('tatar_pending_order');
-      }
+      toast('Order cancelled.', 'error');
+      pendingOrderId = null;
+      localStorage.removeItem('tatar_pending_order');
       fetchOrders();
     }
   } catch(e) { toast('Failed', 'error'); }
